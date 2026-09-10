@@ -17,7 +17,7 @@ services:
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
       - POSTGRES_PASSWORD=${LINKWARDEN_DB_PASSWORD}
-      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_MASTER_KEY=${karameili}
       - MEILI_HOST=http://meilisearch:7700
       - OPENAI_MODEL=gpt-5
       - OPENAI_API_KEY=${linkwardenopenai}
@@ -73,7 +73,7 @@ services:
     container_name: meilisearch
     restart: unless-stopped
     environment:
-      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_MASTER_KEY=${karameili}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - /volume1/docker/meilisearch/meili_data:/meili_data
