@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=linkwarden
+      - POSTGRES_USER=linkwardenuser
+      - POSTGRES_PASSWORD=${LINKWARDEN_DB_PASSWORD}
+    restart: always
+    volumes:
+      - /volume1/docker/linkwarden/pgdata:/var/lib/postgresql/data
+
+  linkwarden:
+    environment:
+      - NEXTAUTH_URL=http://localhost:3000/api/v1/auth
+      - NEXTAUTH_SECRET=${linkwardennextauth}
+      - DATABASE_URL=postgres://linkwardenuser:${LINKWARDEN_DB_PASSWORD}@postgres:5432/linkwarden
+      - POSTGRES_DB=linkwarden
+      - POSTGRES_USER=linkwardenuser
+      - POSTGRES_PASSWORD=${LINKWARDEN_DB_PASSWORD}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_HOST=http://meilisearch:7700
+      - OPENAI_MODEL=gpt-5
+      - OPENAI_API_KEY=${linkwardenopenai}
+    restart: always
+    image: ghcr.io/linkwarden/linkwarden:latest
+    ports:
+      - 3101:3000
+    volumes:
+      - /volume1/docker/linkwarden/data:/data/data
+    depends_on:
+      - postgres
+      - meilisearch
+
+  web:
+    image: ghcr.io/karakeep-app/karakeep:latest
+    restart: unless-stopped
+    volumes:
+      - /volume1/docker/karakeep/data:/data
+    ports:
+      - 3000:3000
+    environment:
+      - NEXTAUTH_SECRET=${karanextauth}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - NEXTAUTH_URL=http://192.168.189.40:3000
+      - OPENAI_API_KEY=ollama
+      - OPENAI_BASE_URL=https://ollama.ashish-syn-nas.synology.me:11434
+      - INFERENCE_TEXT_MODEL=gemma3
+      - INFERENCE_IMAGE_MODEL=llava
+      - EMBEDDING_TEXT_MODEL=embeddinggemma
+      - EMBEDDING_DIMENSIONS=768
+      - EMBEDDING_CONTEXT_LENGTH=2048
+      - INFERENCE_OUTPUT_SCHEMA=plain
+      - MEILI_ADDR=http://meilisearch:7700
+      - BROWSER_WEB_URL=http://chrome:9222
+      - DATA_DIR=/data
+    depends_on:
+      - meilisearch
+      - chrome
+
+  chrome:
+    image: zenika/alpine-chrome:latest
+    restart: unless-stopped
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch
+    restart: unless-stopped
+    environment:
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - /volume1/docker/meilisearch/meili_data:/meili_data
+
+  meilisearch-watchdog:
+    image: ghcr.io/hello2ashu/meilisearch-watchdog:latest
+    container_name: meilisearch-watchdog
+    restart: unless-stopped
+    environment:
+      DOCKHAND_URL: https://dockhand.ashish-syn-nas.synology.me
+      DOCKHAND_TOKEN: ${DOCKHAND_TOKEN}                    # generate in Dockhand: Settings > API Tokens
+      MEILISEARCH_CONTAINER: meilisearch
+      MEILI_DATA_PATH: /meili_data                         # matches the volume mount below
+      KARAKEEP_URL: https://karakeep.ashish-syn-nas.synology.me
+      KARAKEEP_ADMIN_API_KEY: ${KARAKEEP_ADMIN_API_KEY}    # an admin-role key from Karakeep Settings > API Keys
+      LINKWARDEN_DB_HOST: postgres
+      LINKWARDEN_DB_NAME: linkwarden
+      LINKWARDEN_DB_USER: linkwardenuser
+      LINKWARDEN_DB_PASSWORD: ${LINKWARDEN_DB_PASSWORD}
+      CHECK_INTERVAL_SECS: "300"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker/meilisearch/meili_data:/meili_data
+    depends_on:
+      - meilisearch
+      - postgres
