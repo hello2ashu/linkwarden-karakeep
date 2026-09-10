@@ -4,7 +4,7 @@ services:
     environment:
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
-      - POSTGRES_PASSWORD=${LINKWARDEN_DB_PASSWORD}
+      - POSTGRES_PASSWORD=${linkwardenpass}
     restart: always
     volumes:
       - /volume1/docker/linkwarden/pgdata:/var/lib/postgresql/data
@@ -13,11 +13,11 @@ services:
     environment:
       - NEXTAUTH_URL=http://localhost:3000/api/v1/auth
       - NEXTAUTH_SECRET=${linkwardennextauth}
-      - DATABASE_URL=postgres://linkwardenuser:${LINKWARDEN_DB_PASSWORD}@postgres:5432/linkwarden
+      - DATABASE_URL=postgres://linkwardenuser:${linkwardenpass}@postgres:5432/linkwarden
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
-      - POSTGRES_PASSWORD=${LINKWARDEN_DB_PASSWORD}
-      - MEILI_MASTER_KEY=${karameili}
+      - POSTGRES_PASSWORD=${linkwardenpass}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
       - MEILI_HOST=http://meilisearch:7700
       - OPENAI_MODEL=gpt-5
       - OPENAI_API_KEY=${linkwardenopenai}
@@ -43,13 +43,6 @@ services:
       - MEILI_MASTER_KEY=${sharedmeilisearch}
       - NEXTAUTH_URL=http://192.168.189.40:3000
       - OPENAI_API_KEY=ollama
-      - OPENAI_BASE_URL=https://ollama.ashish-syn-nas.synology.me:11434
-      - INFERENCE_TEXT_MODEL=gemma3
-      - INFERENCE_IMAGE_MODEL=llava
-      - EMBEDDING_TEXT_MODEL=embeddinggemma
-      - EMBEDDING_DIMENSIONS=768
-      - EMBEDDING_CONTEXT_LENGTH=2048
-      - INFERENCE_OUTPUT_SCHEMA=plain
       - MEILI_ADDR=http://meilisearch:7700
       - BROWSER_WEB_URL=http://chrome:9222
       - DATA_DIR=/data
@@ -92,7 +85,7 @@ services:
       LINKWARDEN_DB_HOST: postgres
       LINKWARDEN_DB_NAME: linkwarden
       LINKWARDEN_DB_USER: linkwardenuser
-      LINKWARDEN_DB_PASSWORD: ${LINKWARDEN_DB_PASSWORD}
+      LINKWARDEN_DB_PASSWORD: ${linkwardenpass}
       CHECK_INTERVAL_SECS: "300"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
