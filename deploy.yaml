@@ -42,7 +42,6 @@ services:
       - NEXTAUTH_SECRET=${karanextauth}
       - MEILI_MASTER_KEY=${sharedmeilisearch}
       - NEXTAUTH_URL=http://192.168.189.40:3000
-      - OPENAI_API_KEY=ollama
       - MEILI_ADDR=http://meilisearch:7700
       - BROWSER_WEB_URL=http://chrome:9222
       - DATA_DIR=/data
