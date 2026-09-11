@@ -74,6 +74,7 @@ services:
     restart: unless-stopped
     environment:
       DOCKHAND_URL: https://dockhand.ashish-syn-nas.synology.me
+      DOCKHAND_ENVIRONMENT_ID: "1"
       DOCKHAND_TOKEN: ${DOCKHAND_TOKEN}                    # generate in Dockhand: Settings > API Tokens
       MEILISEARCH_CONTAINER: meilisearch
       MEILI_DATA_PATH: /meili_data                         # matches the volume mount below
