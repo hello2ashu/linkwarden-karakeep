@@ -250,6 +250,8 @@ def check_once():
         log(f"'{MEILISEARCH_CONTAINER}' not confirmed on latest per Dockhand (on_latest={on_latest}) - skipping log check")
         return
 
+    log(f"Dockhand confirms '{MEILISEARCH_CONTAINER}' is on latest - checking its logs")
+
     try:
         logs = get_recent_logs(MEILISEARCH_CONTAINER)
     except Exception as exc:
@@ -258,7 +260,8 @@ def check_once():
 
     match = VERSION_MISMATCH_RE.search(logs)
     if not match:
-        return  # on latest, logs look fine - nothing to do
+        log(f"'{MEILISEARCH_CONTAINER}' logs look clean - no version mismatch, nothing to do")
+        return
 
     db_version, engine_version = match.groups()
     log(f"Version mismatch detected in logs: db={db_version} engine={engine_version}")
