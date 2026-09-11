@@ -17,7 +17,7 @@ services:
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
       - POSTGRES_PASSWORD=${linkwardenpass}
-      - MEILI_MASTER_KEY=${linkwardennextauth}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
       - MEILI_HOST=http://meilisearch:7700
     restart: always
     image: ghcr.io/linkwarden/linkwarden:latest
@@ -38,7 +38,7 @@ services:
       - 3000:3000
     environment:
       - NEXTAUTH_SECRET=${karanextauth}
-      - MEILI_MASTER_KEY=${linkwardennextauth}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
       - NEXTAUTH_URL=http://192.168.189.40:3000
       - MEILI_ADDR=http://meilisearch:7700
       - BROWSER_WEB_URL=http://chrome:9222
@@ -63,7 +63,7 @@ services:
     container_name: meilisearch
     restart: unless-stopped
     environment:
-      - MEILI_MASTER_KEY=${karameili}
+      - MEILI_MASTER_KEY=${sharedmeilisearch}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - /volume1/docker/meilisearch/meili_data:/meili_data
