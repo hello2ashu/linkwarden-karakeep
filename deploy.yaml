@@ -17,10 +17,8 @@ services:
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
       - POSTGRES_PASSWORD=${linkwardenpass}
-      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_MASTER_KEY=${linkwardennextauth}
       - MEILI_HOST=http://meilisearch:7700
-      - OPENAI_MODEL=gpt-5
-      - OPENAI_API_KEY=${linkwardenopenai}
     restart: always
     image: ghcr.io/linkwarden/linkwarden:latest
     ports:
@@ -33,14 +31,14 @@ services:
 
   web:
     image: ghcr.io/karakeep-app/karakeep:latest
-    restart: unless-stopped
+    restart: unless-stopped 
     volumes:
       - /volume1/docker/karakeep/data:/data
     ports:
       - 3000:3000
     environment:
       - NEXTAUTH_SECRET=${karanextauth}
-      - MEILI_MASTER_KEY=${sharedmeilisearch}
+      - MEILI_MASTER_KEY=${linkwardennextauth}
       - NEXTAUTH_URL=http://192.168.189.40:3000
       - MEILI_ADDR=http://meilisearch:7700
       - BROWSER_WEB_URL=http://chrome:9222
