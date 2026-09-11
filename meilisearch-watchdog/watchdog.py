@@ -36,12 +36,11 @@ Optional env vars:
                             than once per 30 min, in case recovery takes a
                             moment and logs still show the old error briefly)
 
-IMPORTANT - NOT YET VERIFIED AGAINST A REAL DOCKHAND RESPONSE:
-Dockhand's exact JSON shape for GET /api/containers/check-updates isn't
-publicly documented (no OpenAPI spec exists as of this writing - see
-Finsys/dockhand#814). The parsing below uses reasonable, best-guess field
-names. Test it once manually and adjust `container_has_pending_update`
-and `container_is_on_latest` below if the real field names differ.
+CONFIRMED (2026-09-11) against a real Dockhand instance:
+  - GET .../api/containers/check-updates?env=<id> requires the env query param
+  - Response shape: {"environmentId": N, "pendingUpdates": [{"containerName": ..., ...}]}
+  - A container is "on latest" if it's simply absent from pendingUpdates
+See container_is_on_latest() below for the exact parsing.
 """
 
 import os
@@ -57,6 +56,7 @@ import requests
 
 DOCKHAND_URL = os.environ["DOCKHAND_URL"].rstrip("/")
 DOCKHAND_TOKEN = os.environ["DOCKHAND_TOKEN"]
+DOCKHAND_ENVIRONMENT_ID = os.environ.get("DOCKHAND_ENVIRONMENT_ID", "1")   # Dockhand's multi-host "environment" - 1 is the default for a single-host setup
 MEILISEARCH_CONTAINER = os.environ.get("MEILISEARCH_CONTAINER", "meilisearch")
 MEILI_DATA_PATH = os.environ["MEILI_DATA_PATH"]
 
@@ -91,30 +91,40 @@ def log(msg):
 def container_is_on_latest(container_name):
     """
     Ask Dockhand whether this container currently has a pending update.
-    Returns True if Dockhand reports NO pending update (i.e. already on
-    the latest pulled/available tag), False if an update is pending,
-    None if the container wasn't found in the response at all.
+
+    Confirmed response shape (2026-09-11, live test against a real Dockhand
+    instance):
+        {
+          "environmentId": 1,
+          "pendingUpdates": [
+            {
+              "containerId": "...",
+              "containerName": "Syncthing",
+              "currentImage": "ghcr.io/linuxserver/syncthing:latest",
+              "checkedAt": "2026-09-11T05:16:18.447Z"
+            }
+          ]
+        }
+
+    pendingUpdates only lists containers that HAVE an update available - a
+    container not appearing in this list is already on the latest pulled
+    image. There's no separate boolean field to check.
     """
     resp = requests.get(
         f"{DOCKHAND_URL}/api/containers/check-updates",
+        params={"env": DOCKHAND_ENVIRONMENT_ID},
         headers={"Authorization": f"Bearer {DOCKHAND_TOKEN}"},
         timeout=15,
     )
     resp.raise_for_status()
     data = resp.json()
 
-    # Best-guess shape: a list of container objects, or {"containers": [...]}.
-    # Adjust this block once you've seen a real response (see module docstring).
-    items = data if isinstance(data, list) else data.get("containers", data.get("results", []))
+    pending = data.get("pendingUpdates", [])
+    for item in pending:
+        if item.get("containerName") == container_name:
+            return False  # has a pending update - NOT on latest yet
 
-    for item in items:
-        name = item.get("name") or item.get("containerName") or item.get("container_name")
-        if name == container_name:
-            has_update = item.get("updateAvailable", item.get("hasUpdate", item.get("pendingUpdate")))
-            return not bool(has_update)
-
-    log(f"WARNING: '{container_name}' not found in Dockhand's check-updates response - can't confirm latest status")
-    return None
+    return True  # absent from pendingUpdates - already on latest
 
 
 def get_recent_logs(container_name, tail=300):
