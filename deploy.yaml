@@ -9,7 +9,7 @@ services:
       - NEXTAUTH_URL=https://linkwarden.ashish-syn-nas.synology.me
       - NEXTAUTH_URL_INTERNAL=http://localhost:3000
       - NEXTAUTH_SECRET=${linkwardennextauth}
-      - DATABASE_URL=postgres://linkwardenuser:${sharedpgadminpass}@shared_postgres:5432/linkwarden
+      - DATABASE_URL=postgres://linkwardenuser:${sharedpgadminpass}@Shared-Postgres:5432/linkwarden
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
       - POSTGRES_PASSWORD=${sharedpgadminpass}
