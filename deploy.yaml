@@ -3,16 +3,25 @@ services:
   # shared_postgres container from deploy-shared-postgres.yaml.
   # Requires: CREATE DATABASE linkwarden OWNER linkwardenuser; in that stack's init.sql,
   # and the "shared-postgres_net" external network below.
+  #
+  # SECURITY FIX: this previously authenticated as linkwardenuser using
+  # ${sharedpgadminpass} — the shared Postgres *superuser* password. That gave this
+  # (internet-facing) container the master key to every database on the shared
+  # instance. It now uses its own distinct ${linkwardendbpass}, which must match
+  # whatever you set via: ALTER USER linkwardenuser WITH PASSWORD '...';
+  #
+  # Also uses "shared_postgres" (the hostname), not "Shared-Postgres" (the container
+  # name) — matches every other file in this stack.
 
   linkwarden:
     environment:
       - NEXTAUTH_URL=https://linkwarden.ashish-syn-nas.synology.me
       - NEXTAUTH_URL_INTERNAL=http://localhost:3000
       - NEXTAUTH_SECRET=${linkwardennextauth}
-      - DATABASE_URL=postgres://linkwardenuser:${sharedpgadminpass}@Shared-Postgres:5432/linkwarden
+      - DATABASE_URL=postgres://linkwardenuser:${linkwardendbpass}@shared_postgres:5432/linkwarden
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
-      - POSTGRES_PASSWORD=${sharedpgadminpass}
+      - POSTGRES_PASSWORD=${linkwardendbpass}
       - MEILI_MASTER_KEY=${sharedmeilisearch}
       - MEILI_HOST=http://meilisearch:7700
     restart: always
@@ -105,7 +114,7 @@ services:
       LINKWARDEN_DB_HOST: shared_postgres
       LINKWARDEN_DB_NAME: linkwarden
       LINKWARDEN_DB_USER: linkwardenuser
-      LINKWARDEN_DB_PASSWORD: ${sharedpgadminpass}
+      LINKWARDEN_DB_PASSWORD: ${linkwardendbpass}
       CHECK_INTERVAL_SECS: "300"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
