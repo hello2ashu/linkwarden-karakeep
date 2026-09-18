@@ -1,20 +1,15 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_DB=linkwarden
-      - POSTGRES_USER=linkwardenuser
-      - POSTGRES_PASSWORD=${sharedpgadminpass}
-    restart: always
-    volumes:
-      - /volume1/docker/linkwarden/pgdata:/var/lib/postgresql/data
+  # Old standalone "postgres" service removed — Linkwarden now uses the
+  # shared_postgres container from deploy-shared-postgres.yaml.
+  # Requires: CREATE DATABASE linkwarden OWNER linkwardenuser; in that stack's init.sql,
+  # and the "shared-postgres_net" external network below.
 
   linkwarden:
     environment:
       - NEXTAUTH_URL=https://linkwarden.ashish-syn-nas.synology.me
       - NEXTAUTH_URL_INTERNAL=http://localhost:3000
       - NEXTAUTH_SECRET=${linkwardennextauth}
-      - DATABASE_URL=postgres://linkwardenuser:${linkwardenpass}@postgres:5432/linkwarden
+      - DATABASE_URL=postgres://linkwardenuser:${sharedpgadminpass}@shared_postgres:5432/linkwarden
       - POSTGRES_DB=linkwarden
       - POSTGRES_USER=linkwardenuser
       - POSTGRES_PASSWORD=${sharedpgadminpass}
@@ -26,13 +21,21 @@ services:
       - 3101:3000
     volumes:
       - /volume1/docker/linkwarden/data:/data/data
+    mem_limit: 512m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
-      - postgres
       - meilisearch
+    networks:
+      - default
+      - shared-postgres_net
 
   web:
     image: ghcr.io/karakeep-app/karakeep:latest
-    restart: unless-stopped 
+    restart: unless-stopped
     volumes:
       - /volume1/docker/karakeep/data:/data
     ports:
@@ -44,6 +47,12 @@ services:
       - MEILI_ADDR=http://meilisearch:7700
       - BROWSER_WEB_URL=http://chrome:9222
       - DATA_DIR=/data
+    mem_limit: 512m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - meilisearch
       - chrome
@@ -58,6 +67,12 @@ services:
       - --remote-debugging-address=0.0.0.0
       - --remote-debugging-port=9222
       - --hide-scrollbars
+    mem_limit: 512m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   meilisearch:
     image: getmeili/meilisearch:latest
@@ -68,6 +83,12 @@ services:
       - MEILI_NO_ANALYTICS=true
     volumes:
       - /volume1/docker/meilisearch/meili_data:/meili_data
+    mem_limit: 512m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   meilisearch-watchdog:
     image: ghcr.io/hello2ashu/meilisearch-watchdog:latest
@@ -81,7 +102,7 @@ services:
       MEILI_DATA_PATH: /meili_data                         # matches the volume mount below
       KARAKEEP_URL: https://karakeep.ashish-syn-nas.synology.me
       KARAKEEP_ADMIN_API_KEY: ${KARAKEEP_ADMIN_API_KEY}    # an admin-role key from Karakeep Settings > API Keys
-      LINKWARDEN_DB_HOST: postgres
+      LINKWARDEN_DB_HOST: shared_postgres
       LINKWARDEN_DB_NAME: linkwarden
       LINKWARDEN_DB_USER: linkwardenuser
       LINKWARDEN_DB_PASSWORD: ${sharedpgadminpass}
@@ -89,6 +110,18 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /volume1/docker/meilisearch/meili_data:/meili_data
+    mem_limit: 256m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - meilisearch
-      - postgres
+    networks:
+      - default
+      - shared-postgres_net
+
+networks:
+  shared-postgres_net:
+    external: true
